@@ -1,6 +1,6 @@
+# src/train.py
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import List
 
@@ -34,14 +34,20 @@ def main(train_path: str = "data/train.jsonl") -> None:
 
     schema = build_schema_from_buckets(reqs)
 
-    rows = []
-    for r in reqs:
-        rows.append(vectorize_bucket(r, schema))
+    rows = [vectorize_bucket(r, schema) for r in reqs]
     X = pd.concat(rows, axis=0, ignore_index=True)
 
-    scaler, model, threshold = train_isolation_forest(X)
+    scaler, model, threshold, p05, p50, p95 = train_isolation_forest(X)
 
-    artifact = TrainedArtifact(schema=schema, scaler=scaler, model=model, decision_threshold=threshold)
+    artifact = TrainedArtifact(
+        schema=schema,
+        scaler=scaler,
+        model=model,
+        decision_threshold=threshold,
+        score_p05=p05,
+        score_p50=p50,
+        score_p95=p95,
+    )
     save_artifact(artifact)
 
     # stats for per-feature deviation-based contributions (use only base columns)
@@ -49,11 +55,13 @@ def main(train_path: str = "data/train.jsonl") -> None:
     stats = compute_train_stats_for_contributions(X_base)
     save_train_stats(stats)
 
-    print(f"Saved model to models/model.joblib")
-    print(f"Saved train stats to models/train_stats.json")
-    print(f"Schema columns: {len(schema.columns)} (+missing indicators: {len(schema.columns)})")
-    print(f"Decision threshold: {threshold:.6f}")
+    print("Saved model to models/model.joblib")
+    print("Saved train stats to models/train_stats.json")
+    print(f"Schema columns: {len(schema.columns)} (+missing indicators: {len(schema.all_columns()) - len(schema.columns)})")
+    print(f"Decision threshold (fixed): {threshold:.6f}")
+    print(f"Train decision_function quantiles: p05={p05:.6f}, p50={p50:.6f}, p95={p95:.6f}")
 
 
 if __name__ == "__main__":
     main()
+

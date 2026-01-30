@@ -1,3 +1,4 @@
+# src/app.py
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
@@ -24,10 +25,12 @@ def _startup() -> None:
     try:
         _artifact = load_artifact(SETTINGS.model_path)
         _stats = load_train_stats(SETTINGS.train_stats_path)
+        print(f"Loaded model artifact from {SETTINGS.model_path}")
+        print(f"Loaded train stats from {SETTINGS.train_stats_path}")
     except Exception as e:
-        # service can still start but /score will fail until training artifacts exist
         _artifact = None
         _stats = None
+        print(f"WARNING: Failed to load artifacts: {e}")
 
 
 @app.post("/score", response_model=TelemetryBucketResponse)

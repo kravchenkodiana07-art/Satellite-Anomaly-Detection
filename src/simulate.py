@@ -1,10 +1,10 @@
+# src/simulate.py
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 
@@ -55,7 +55,7 @@ def generate_bucket(
     bucket_start: datetime,
     rng: np.random.Generator,
     specs: Dict[str, SignalSpec] = DEFAULT_SPECS,
-    anomaly_prob: float = 0.03,
+    anomaly_prob: float = 0.0,
     drop_signal_prob: float = 0.05,
 ) -> TelemetryBucketRequest:
     signals = {name: _make_features(rng, spec) for name, spec in specs.items()}
@@ -65,7 +65,7 @@ def generate_bucket(
         name = rng.choice(list(signals.keys()))
         signals.pop(name, None)
 
-    # inject anomalies sometimes
+    # inject anomalies sometimes (USED ONLY FOR TEST DATA)
     if rng.random() < anomaly_prob and signals:
         keys = list(signals.keys())
         k = int(rng.integers(1, min(3, len(keys)) + 1))
@@ -91,10 +91,12 @@ def generate_bucket(
     )
 
 
-def write_train_jsonl(
-    out_path: Path = Path("data/train.jsonl"),
-    n_minutes: int = 2000,
-    seed: int = 42,
+def write_jsonl(
+    out_path: Path,
+    n_minutes: int,
+    seed: int,
+    anomaly_prob: float,
+    drop_signal_prob: float,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
@@ -102,7 +104,12 @@ def write_train_jsonl(
 
     with out_path.open("w", encoding="utf-8") as f:
         for i in range(n_minutes):
-            req = generate_bucket(start + timedelta(minutes=i), rng)
+            req = generate_bucket(
+                start + timedelta(minutes=i),
+                rng,
+                anomaly_prob=anomaly_prob,
+                drop_signal_prob=drop_signal_prob,
+            )
             f.write(req.model_dump_json())
             f.write("\n")
 
@@ -116,6 +123,25 @@ def write_sample_request(out_path: Path = Path("data/sample_request.json"), seed
 
 
 if __name__ == "__main__":
-    write_train_jsonl()
+    # TRAIN: normal-only
+    write_jsonl(
+        out_path=Path("data/train.jsonl"),
+        n_minutes=2000,
+        seed=42,
+        anomaly_prob=0.0,
+        drop_signal_prob=0.05,
+    )
+
+    # TEST: contains anomalies (for evaluation only)
+    write_jsonl(
+        out_path=Path("data/test_anoms.jsonl"),
+        n_minutes=400,
+        seed=43,
+        anomaly_prob=0.10,
+        drop_signal_prob=0.05,
+    )
+
     write_sample_request()
-    print("Wrote data/train.jsonl and data/sample_request.json")
+    print("Wrote data/train.jsonl (normal-only)")
+    print("Wrote data/test_anoms.jsonl (with anomalies)")
+    print("Wrote data/sample_request.json")
