@@ -36,21 +36,6 @@ confidence: Reliability of the score based on training distribution.
 
 top_contributors: Which specific signals caused the anomaly.
 
-⚡ Quick Start
-1. Install Dependencies
-
-Bash
-pip install fastapi scikit-learn pandas joblib pydantic
-2. Generate Data & Train Model
-
-Bash
-python -m src.simulate
-python -m src.train
-3. Run the API
-
-Bash
-uvicorn src.app:app --reload
-The API will be live at http://127.0.0.1:8000. You can view the interactive documentation at /docs.
 
 🔭 Research Context
-This project was developed as part of a focus on satellite telemetry processing and astrophysics research. It explores how unsupervised models can identify celestial-driven anomalies in satellite hardware, such as those caused by high-energy particle events or sensor degradation.
+This project was originally conceived and prototyped during the ActInSpace 2026 International Hackathon. It reflects a specialized focus on satellite telemetry processing and astrophysics research, specifically exploring how unsupervised models can identify celestial-driven anomalies in satellite hardware.
